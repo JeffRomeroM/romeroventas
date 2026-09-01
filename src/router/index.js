@@ -36,7 +36,7 @@ const routes = [
   },
   {
     path: '/clientes',
-    name: 'Clientes',
+    name: 'VistaClientes',
     component: () => import('../views/VistaClientes.vue'),
     meta: { requiresAuth: true }
   },
@@ -55,7 +55,7 @@ const routes = [
   },
   {
      path: '/egresos',
-     name: 'Egresos',
+     name: 'VistaEgresos',
      component: () => import('../views/VistaEgresos.vue'),
      meta: { requiresAuth: true }
   },
