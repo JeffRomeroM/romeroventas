@@ -4,11 +4,11 @@ import { createClient } from '@supabase/supabase-js'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Dashboard from '../views/Dashboard.vue'
-import Clientes from '../views/Clientes.vue'
+import VistaClientes from '../views/VistaClientes.vue'
 import NotFound from '../components/NotFound.vue'
 import Inventario from '../views/Inventario.vue'
 import Ventas from '../views/Ventas.vue'
-import Egresos from '../views/Egresos.vue'
+import VistaEgresos from '../views/VistaEgresos.vue'
 import FacturacionVentas from '../components/ventas/FacturacionVentas.vue'
 import EditarPerfil from '../views/EditarPerfil.vue'
 
@@ -38,7 +38,7 @@ const routes = [
   },
   {
     path: '/clientes',
-    component: Clientes,
+    component: VistaClientes,
     meta: { requiresAuth: true }
   },
   // { 
@@ -48,12 +48,7 @@ const routes = [
   //   meta: { requiresAuth: true }
     
   // },
-  // {
-  //   path: '/inventario',
-  //   name: 'Inventario',
-  //   component: Inventario,
-  //   meta: { requiresAuth: true }
-  // },
+
   {
     path: '/pos',
     name: 'POS',
@@ -69,31 +64,18 @@ const routes = [
   {
      path: '/egresos',
      name: 'Egresos',
-     component: Egresos,
+     component: VistaEgresos,
      meta: { requiresAuth: true }
   },
   
- 
-  // {
-  //   path: '/entradas',
-  //   component: Entradas,
-  //   meta: { requiresAuth: true }
-  // },
+
    {
     path: '/inventario',
      component: Inventario,
      meta: { requiresAuth: true }
     },
   
-  // {
-  //   path: '/salidas',
-  //   component: Salidas,
-  //   meta: { requiresAuth: true }
-  // },
-  // {
-  //   path: '/:nombre_tienda',
-  //   component: VistaPublica
-  // },
+  
 ]
 
 const router = createRouter({
