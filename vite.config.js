@@ -6,6 +6,10 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
+      workbox: {
+        navigateFallback: '/index.html',
+        navigateFallbackAllowlist: [/^\//]
+      },
       registerType: 'autoUpdate',
       manifest: {
         name: 'Romero Ventas',
