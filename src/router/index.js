@@ -1,26 +1,22 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { createClient } from '@supabase/supabase-js'
+// Importa tu instancia centralizada de Supabase
+import { supabase } from '../supabase/supabase.js'
 
+// Carga directa solo para las vistas públicas de entrada
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
-import Dashboard from '../views/Dashboard.vue'
-import VistaClientes from '../views/VistaClientes.vue'
-import NotFound from '../components/NotFound.vue'
-import Inventario from '../views/Inventario.vue'
-import Ventas from '../views/Ventas.vue'
-import VistaEgresos from '../views/VistaEgresos.vue'
-import FacturacionVentas from '../components/ventas/FacturacionVentas.vue'
-import EditarPerfil from '../views/EditarPerfil.vue'
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY
-const supabase = createClient(supabaseUrl, supabaseKey)
-
-
 
 const routes = [
-  { path: '/', component: Login },
-  { path: '/register', component: Register },
+  { 
+    path: '/', 
+    name: 'Login', 
+    component: Login 
+  },
+  { 
+    path: '/register', 
+    name: 'Register', 
+    component: Register 
+  },
   {
     path: '/catalogo/:userId',
     name: 'CatalogoPublico',
@@ -28,54 +24,52 @@ const routes = [
   },
   {
     path: '/dashboard',
-    component: Dashboard,
+    name: 'Dashboard',
+    component: () => import('../views/Dashboard.vue'),
     meta: { requiresAuth: true }
   },
   {
     path: '/perfil',
-    component: EditarPerfil,
+    name: 'Perfil',
+    component: () => import('../views/EditarPerfil.vue'),
     meta: { requiresAuth: true }
   },
   {
     path: '/clientes',
-    component: VistaClientes,
+    name: 'Clientes',
+    component: () => import('../views/VistaClientes.vue'),
     meta: { requiresAuth: true }
   },
-  // { 
-  //   path: '/:pathMatch(.*)*', 
-  //   name: 'NotFound', 
-  //   component: NotFound,
-  //   meta: { requiresAuth: true }
-    
-  // },
-
   {
     path: '/pos',
     name: 'POS',
-    component: FacturacionVentas,
+    // OJO: Asegúrate de que la carpeta sea /Ventas/ o /ventas/ exactamente igual en Git
+    component: () => import('../components/ventas/FacturacionVentas.vue'),
     meta: { requiresAuth: true }
   },
   {
     path: '/ventas',
     name: 'Ventas',
-    component: Ventas,
+    component: () => import('../views/VistaVentas.vue'),
     meta: { requiresAuth: true }
   },
   {
      path: '/egresos',
      name: 'Egresos',
-     component: VistaEgresos,
+     component: () => import('../views/VistaEgresos.vue'),
      meta: { requiresAuth: true }
   },
-  
-
-   {
+  {
     path: '/inventario',
-     component: Inventario,
-     meta: { requiresAuth: true }
-    },
-  
-  
+    name: 'Inventario',
+    component: () => import('../views/VistaInventario.vue'),
+    meta: { requiresAuth: true }
+  },
+  { 
+    path: '/:pathMatch(.*)*', 
+    name: 'NotFound', 
+    component: () => import('../views/NotFound.vue')
+  }
 ]
 
 const router = createRouter({
@@ -83,13 +77,20 @@ const router = createRouter({
   routes,
 })
 
+// Guard de navegación para autenticación
 router.beforeEach(async (to, from, next) => {
   const { data } = await supabase.auth.getSession()
   const isAuthenticated = !!data.session
 
+  // Si requiere autenticación y no hay sesión, redirige al Login
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/')
-  } else {
+    next({ name: 'Login' })
+  } 
+  // Si ya está autenticado e intenta ir a Login o Register, redirige al Dashboard
+  else if ((to.path === '/' || to.path === '/register') && isAuthenticated) {
+    next({ name: 'pos' })
+  } 
+  else {
     next()
   }
 })

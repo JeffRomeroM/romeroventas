@@ -27,7 +27,6 @@
     <div class="kpi-grid">
       <!-- VENTAS TOTALES -->
       <div class="kpi-card border-blue">
-        <p class="kpi-label">Ventas Totales (Precio × Cantidad)</p>
         <h3 class="kpi-value text-blue">C$ {{ formatMonto(kpis.ingresos) }}</h3>
         <span class="kpi-subtext">{{ kpis.totalFacturas }} facturas registradas</span>
       </div>
@@ -36,7 +35,6 @@
       <div class="kpi-card border-red">
         <p class="kpi-label">Egresos / Gastos Operativos</p>
         <h3 class="kpi-value text-red">C$ {{ formatMonto(kpis.egresos) }}</h3>
-        <span class="kpi-subtext">Gastos del periodo</span>
       </div>
 
       <!-- GANANCIA BRUTA REAL ((PRECIO VENTA - COSTO) * CANTIDAD) -->
@@ -45,7 +43,6 @@
         <h3 class="kpi-value" :class="kpis.gananciaBruta < 0 ? 'text-danger' : 'text-emerald'">
           C$ {{ formatMonto(kpis.gananciaBruta) }}
         </h3>
-        <span class="kpi-subtext">(Precio Venta - Costo) × Cantidad</span>
       </div>
 
       <!-- GANANCIA NETA LIMPIA (GANANCIA BRUTA - EGRESOS) -->
@@ -54,7 +51,6 @@
         <h3 class="kpi-value" :class="kpis.gananciaNeta < 0 ? 'text-danger' : 'text-purple'">
           C$ {{ formatMonto(kpis.gananciaNeta) }}
         </h3>
-        <span class="kpi-subtext">Ganancia Bruta - Egresos</span>
       </div>
     </div>
 
