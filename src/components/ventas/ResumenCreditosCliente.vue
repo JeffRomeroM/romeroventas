@@ -47,7 +47,9 @@
     <!-- DETALLE DE FACTURAS Y ABONOS -->
     <div class="seccion margin-top">
       <h3>Facturas a Crédito</h3>
-      <div class="table-container">
+      
+      <!-- Vista de Tabla para Escritorio -->
+      <div class="table-container desktop-only">
         <table>
           <thead>
             <tr>
@@ -96,6 +98,52 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Vista de Tarjetas para Móviles -->
+      <div class="mobile-only facturas-mobile-list">
+        <div v-for="f in facturasCredito" :key="`mob-${f.venta_id}`" class="card-factura-mobile">
+          <div class="card-factura-header">
+            <div>
+              <span class="factura-cliente">{{ f.cliente_nombre }}</span>
+              <span class="factura-fecha">{{ formatFecha(f.fecha) }}</span>
+            </div>
+            <span :class="['badge-pago', f.estado_pago?.toLowerCase()]">
+              {{ f.estado_pago }}
+            </span>
+          </div>
+
+          <div class="factura-detalles-grid">
+            <div class="dato-col">
+              <span class="lbl">Total</span>
+              <span class="val">C$ {{ formatMonto(f.total_venta) }}</span>
+            </div>
+            <div class="dato-col">
+              <span class="lbl">Abonado</span>
+              <span class="val text-success">C$ {{ formatMonto(f.total_abonado) }}</span>
+            </div>
+            <div class="dato-col">
+              <span class="lbl">Saldo</span>
+              <span class="val text-danger font-bold">C$ {{ formatMonto(f.saldo_factura) }}</span>
+            </div>
+          </div>
+
+          <div v-if="f.saldo_factura > 0" class="factura-acciones-mobile">
+            <button 
+              class="btn-abono" 
+              @click="abrirModalAbono(f, 'parcial')"
+            >
+              <Icon icon="mdi:cash-plus" /> Abonar
+            </button>
+
+            <button 
+              class="btn-liquidar" 
+              @click="abrirModalAbono(f, 'total')"
+            >
+              <Icon icon="mdi:check-all" /> Liquidar
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -173,7 +221,6 @@ const cargarSaldos = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Sesión no encontrada.')
 
-    // Traemos los saldos agregados y las facturas pendientes
     const [resSaldos, resFacturas] = await Promise.all([
       supabase
         .from('vista_resumen_creditos_cliente')
@@ -191,8 +238,6 @@ const cargarSaldos = async () => {
 
     saldosCliente.value = resSaldos.data || []
     
-    // CORRECCIÓN: Nos aseguramos de mapear explícitamente los valores numéricos
-    // e inferir 'Pendiente' si el saldo_factura es mayor a 0.
     facturasCredito.value = (resFacturas.data || []).map(f => {
       const saldo = Number(f.saldo_factura || 0)
       return {
@@ -200,7 +245,6 @@ const cargarSaldos = async () => {
         saldo_factura: saldo,
         total_venta: Number(f.total_venta || 0),
         total_abonado: Number(f.total_abonado || 0),
-        // Si tiene saldo pendiente, forzamos la visualización como Pendiente en la tabla
         estado_pago: saldo > 0 ? (f.estado_pago || 'Pendiente') : 'Pagada'
       }
     })
@@ -241,7 +285,6 @@ const guardarAbono = async () => {
     return
   }
 
-  // Tolerancia de centavos para evitar discrepancias por punto flotante
   if ((montoAbono - saldoActual) > 0.01) {
     alert(`El abono (C$ ${montoAbono.toFixed(2)}) no puede exceder el saldo pendiente (C$ ${saldoActual.toFixed(2)}).`)
     return
@@ -253,7 +296,6 @@ const guardarAbono = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Sesión de usuario no válida.')
 
-    // 1. Insertar el abono en la tabla pagos_credito
     const { error: errPago } = await supabase.from('pagos_credito').insert([{
       user_id: user.id,
       venta_id: modalAbono.value.factura.venta_id,
@@ -264,10 +306,8 @@ const guardarAbono = async () => {
 
     if (errPago) throw errPago
 
-    // 2. Calcular la diferencia restante de forma segura
     const saldoRestante = Number((saldoActual - montoAbono).toFixed(2))
 
-    // Solo actualizamos la tabla ventas a 'Pagada' si la deuda realmente queda saldada (<= 0)
     if (saldoRestante <= 0) {
       const { error: errVenta } = await supabase
         .from('ventas')
@@ -315,6 +355,7 @@ onMounted(() => {
 .text-danger { color: #dc2626; }
 .font-bold { font-weight: 700; }
 
+/* Contención de Tablas */
 .table-container { overflow-x: auto; margin-top: 0.75rem; }
 table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 th, td { padding: 0.65rem; border-bottom: 1px solid #f1f5f9; text-align: left; }
@@ -326,26 +367,97 @@ th { background: #f8fafc; color: #475569; }
 
 .acciones-box { display: flex; gap: 0.35rem; justify-content: center; }
 
-.btn-abono { background: #2563eb; color: white; border: none; padding: 0.35rem 0.65rem; border-radius: 5px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.78rem; font-weight: 600; }
+.btn-abono { background: #2563eb; color: white; border: none; padding: 0.35rem 0.65rem; border-radius: 5px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem; font-size: 0.78rem; font-weight: 600; }
 .btn-abono:hover { background: #1d4ed8; }
 
-.btn-liquidar { background: #16a34a; color: white; border: none; padding: 0.35rem 0.65rem; border-radius: 5px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.78rem; font-weight: 600; }
+.btn-liquidar { background: #16a34a; color: white; border: none; padding: 0.35rem 0.65rem; border-radius: 5px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem; font-size: 0.78rem; font-weight: 600; }
 .btn-liquidar:hover { background: #15803d; }
 
 .btn-refrescar { background: none; border: 1px solid #cbd5e1; padding: 0.4rem; border-radius: 6px; cursor: pointer; }
 
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
-.modal-box { background: #fff; padding: 1.5rem; border-radius: 10px; width: 100%; max-width: 400px; }
+/* Ventanas Modales */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+.modal-box { background: #fff; padding: 1.5rem; border-radius: 10px; width: 100%; max-width: 400px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
 .sub-modal { font-size: 0.85rem; color: #475569; margin-bottom: 0.3rem; }
 .form-modal { display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1rem; }
 .campo { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.82rem; }
-.campo input, .campo select { padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; }
+.campo input, .campo select { padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; }
 .campo input[readonly] { background: #f1f5f9; color: #64748b; cursor: not-allowed; }
 
 .modal-acciones { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
-.btn-cancelar { background: #e2e8f0; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; }
+.btn-cancelar { background: #e2e8f0; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 500; }
 .btn-guardar { background: #2563eb; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; }
 
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Clases de Control Responsivo */
+.desktop-only { display: block; }
+.mobile-only { display: none; }
+
+/* ==========================================================================
+   MÓVIL (PANTALLAS PEQUEÑAS)
+   ========================================================================== */
+@media (max-width: 640px) {
+  .desktop-only { display: none; }
+  .mobile-only { display: flex; }
+
+  .seccion { padding: 0.85rem; }
+  .saldos-grid { grid-template-columns: 1fr; }
+
+  .facturas-mobile-list {
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .card-factura-mobile {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 0.85rem;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .card-factura-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 0.5rem;
+  }
+
+  .factura-cliente {
+    display: block;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #0f172a;
+  }
+
+  .factura-fecha {
+    display: block;
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+
+  .factura-detalles-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+
+  .factura-acciones-mobile {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    padding-top: 0.25rem;
+  }
+
+  .factura-acciones-mobile button {
+    width: 100%;
+    padding: 0.5rem;
+  }
+}
 </style>

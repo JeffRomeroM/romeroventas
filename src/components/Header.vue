@@ -93,9 +93,20 @@
             <Icon icon="mdi:close" />
           </button>
         </div>
+
         
         <p class="label">Más opciones</p>
         <nav class="sidebar-links">
+          <router-link to="/dashboard" @click="cerrarMenu" class="link-sidebar movil">
+            <Icon icon="mdi:view-dashboard-outline" class="nav-icon" />
+            <span>Dashboard</span>
+          </router-link>
+          <router-link to="/egresos" @click="cerrarMenu" class="link-sidebar movil">
+            <Icon icon="mdi:cash-minus" class="nav-icon" />
+            <span>Egresos</span>
+          </router-link>
+          <hr>
+        
           <router-link to="/perfil" @click="cerrarMenu" class="link-sidebar">
             <Icon icon="mdi:account-edit" />
             <span>Editar perfil</span>
@@ -569,7 +580,12 @@ hr {
   background: #eff6ff;
   color: #2563eb;
 }
-
+.sidebar-links .movil{
+  display:none;
+}
+hr{
+  display: none;
+}
 .btn-sidebar-action {
   display: flex;
   align-items: center;
@@ -615,5 +631,11 @@ hr {
   .header { padding: 0.65rem 1rem; }
   .brand-logo { height: 32px; }
   .tienda { max-width: 100px; }
+  .sidebar-links .movil{
+      display:flex;
+    }
+  hr{
+    display: block;
+  }
 }
 </style>

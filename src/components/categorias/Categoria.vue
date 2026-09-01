@@ -12,7 +12,7 @@
         <div class="modal-card">
           <div class="modal-header">
             <h3>Gestión de Categorías</h3>
-            <button type="button" class="btn-close" @click="cerrarModal">
+            <button type="button" class="btn-close" @click="cerrarModal" aria-label="Cerrar modal">
               <Icon icon="mdi:close" />
             </button>
           </div>
@@ -29,13 +29,15 @@
                     required 
                     placeholder="Ej. Repuestos, Aceites..." 
                   />
-                  <button type="submit" class="btn-primario" :disabled="guardando">
-                    <Icon v-if="guardando" icon="mdi:loading" class="spin" />
-                    <span>{{ editandoId ? 'Actualizar' : 'Agregar' }}</span>
-                  </button>
-                  <button v-if="editandoId" type="button" class="btn-secundario" @click="cancelarEdicion">
-                    Cancelar
-                  </button>
+                  <div class="form-actions">
+                    <button type="submit" class="btn-primario" :disabled="guardando">
+                      <Icon v-if="guardando" icon="mdi:loading" class="spin" />
+                      <span>{{ editandoId ? 'Actualizar' : 'Agregar' }}</span>
+                    </button>
+                    <button v-if="editandoId" type="button" class="btn-secundario-cancel" @click="cancelarEdicion">
+                      Cancelar
+                    </button>
+                  </div>
                 </div>
               </div>
             </form>
@@ -58,10 +60,10 @@
                 <li v-for="cat in categorias" :key="cat.id" class="cat-item">
                   <span class="cat-nombre">{{ cat.nombre }}</span>
                   <div class="acciones">
-                    <button type="button" class="btn-icon" @click="prepararEdicion(cat)" title="Editar">
+                    <button type="button" class="btn-icon" @click="prepararEdicion(cat)" title="Editar" aria-label="Editar">
                       <Icon icon="mdi:pencil-outline" />
                     </button>
-                    <button type="button" class="btn-icon danger" @click="eliminarCategoria(cat.id)" title="Eliminar">
+                    <button type="button" class="btn-icon danger" @click="eliminarCategoria(cat.id)" title="Eliminar" aria-label="Eliminar">
                       <Icon icon="mdi:trash-can-outline" />
                     </button>
                   </div>
@@ -162,7 +164,7 @@ const guardarCategoria = async () => {
 
     cancelarEdicion()
     await cargarCategorias()
-    emit('actualizado') // Notifica al componente padre para que refresque datos
+    emit('actualizado')
   } catch (err) {
     alert('Error al guardar categoría: ' + err.message)
   } finally {
@@ -176,7 +178,7 @@ const eliminarCategoria = async (id) => {
     const { error } = await supabase.from('categorias').delete().eq('id', id)
     if (error) throw error
     await cargarCategorias()
-    emit('actualizado') // Notifica al componente padre
+    emit('actualizado')
   } catch (err) {
     alert('Error al eliminar categoría: ' + err.message)
   }
@@ -187,6 +189,7 @@ const eliminarCategoria = async (id) => {
 .btn-secundario {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.4rem;
   background: #f1f5f9;
   color: #334155;
@@ -203,9 +206,29 @@ const eliminarCategoria = async (id) => {
   background: #e2e8f0;
 }
 
+.btn-secundario-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-secundario-cancel:hover {
+  background: #e2e8f0;
+}
+
 .btn-primario {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.4rem;
   background: #2563eb;
   color: #ffffff;
@@ -225,12 +248,12 @@ const eliminarCategoria = async (id) => {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(15, 23, 42, 0.5);
   z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 0.75rem;
 }
 
 .modal-card {
@@ -238,7 +261,10 @@ const eliminarCategoria = async (id) => {
   border-radius: 12px;
   width: 100%;
   max-width: 480px;
-  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
@@ -248,6 +274,7 @@ const eliminarCategoria = async (id) => {
   align-items: center;
   padding: 1rem 1.25rem;
   border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
 }
 
 .modal-header h3 {
@@ -260,13 +287,26 @@ const eliminarCategoria = async (id) => {
 .btn-close {
   background: none;
   border: none;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   color: #64748b;
   cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.btn-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
 .modal-body {
   padding: 1.25rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-group {
@@ -286,9 +326,15 @@ const eliminarCategoria = async (id) => {
   gap: 0.5rem;
 }
 
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .cat-input-group input {
   flex: 1;
-  padding: 0.5rem 0.65rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   font-size: 0.88rem;
@@ -303,10 +349,11 @@ const eliminarCategoria = async (id) => {
   border: none;
   border-top: 1px solid #e2e8f0;
   margin: 1.25rem 0;
+  flex-shrink: 0;
 }
 
 .cat-list-container {
-  max-height: 220px;
+  max-height: 240px;
   overflow-y: auto;
 }
 
@@ -345,27 +392,33 @@ const eliminarCategoria = async (id) => {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
+  gap: 0.5rem;
 }
 
 .cat-nombre {
   font-size: 0.88rem;
   font-weight: 600;
   color: #334155;
+  word-break: break-word;
 }
 
 .acciones {
   display: flex;
-  gap: 0.3rem;
+  gap: 0.25rem;
+  flex-shrink: 0;
 }
 
 .btn-icon {
   background: none;
   border: none;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   color: #64748b;
-  padding: 0.25rem;
-  border-radius: 4px;
+  padding: 0.4rem;
+  border-radius: 6px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-icon:hover {
@@ -392,5 +445,30 @@ const eliminarCategoria = async (id) => {
 }
 .fade-enter-from, .fade-leave-to {
   opacity: 0;
+}
+
+/* Responsivo para móviles pequeños */
+@media (max-width: 480px) {
+  .cat-input-group {
+    flex-direction: column;
+  }
+
+  .form-actions {
+    width: 100%;
+  }
+
+  .form-actions .btn-primario,
+  .form-actions .btn-secundario-cancel {
+    flex: 1;
+    padding: 0.65rem;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .modal-header {
+    padding: 0.85rem 1rem;
+  }
 }
 </style>

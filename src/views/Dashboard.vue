@@ -27,6 +27,7 @@
     <div class="kpi-grid">
       <!-- VENTAS TOTALES -->
       <div class="kpi-card border-blue">
+        <p class="kpi-label">Ventas Totales</p>
         <h3 class="kpi-value text-blue">C$ {{ formatMonto(kpis.ingresos) }}</h3>
         <span class="kpi-subtext">{{ kpis.totalFacturas }} facturas registradas</span>
       </div>
@@ -37,7 +38,7 @@
         <h3 class="kpi-value text-red">C$ {{ formatMonto(kpis.egresos) }}</h3>
       </div>
 
-      <!-- GANANCIA BRUTA REAL ((PRECIO VENTA - COSTO) * CANTIDAD) -->
+      <!-- GANANCIA BRUTA REAL -->
       <div class="kpi-card" :class="kpis.gananciaBruta < 0 ? 'border-danger' : 'border-emerald'">
         <p class="kpi-label">Ganancia Bruta Real</p>
         <h3 class="kpi-value" :class="kpis.gananciaBruta < 0 ? 'text-danger' : 'text-emerald'">
@@ -45,7 +46,7 @@
         </h3>
       </div>
 
-      <!-- GANANCIA NETA LIMPIA (GANANCIA BRUTA - EGRESOS) -->
+      <!-- GANANCIA NETA LIMPIA -->
       <div class="kpi-card" :class="kpis.gananciaNeta < 0 ? 'border-danger' : 'border-purple'">
         <p class="kpi-label">Ganancia Neta Limpia</p>
         <h3 class="kpi-value" :class="kpis.gananciaNeta < 0 ? 'text-danger' : 'text-purple'">
@@ -86,7 +87,9 @@
       <!-- Top Productos -->
       <div class="panel-card">
         <h4>Top 5 Productos Más Vendidos</h4>
-        <table class="tabla-resumen">
+        
+        <!-- Tabla Desktop -->
+        <table class="tabla-resumen desktop-only">
           <thead>
             <tr>
               <th>Producto</th>
@@ -105,12 +108,31 @@
             </tr>
           </tbody>
         </table>
+
+        <!-- Lista Tarjetas Móvil -->
+        <div class="mobile-only list-mobile">
+          <div v-for="(p, index) in topProductos" :key="`tp-${index}`" class="card-item-mobile">
+            <div class="card-item-header">
+              <span class="font-medium">{{ p.nombre }}</span>
+              <span class="badge-cant">Cant: {{ p.cantidad }}</span>
+            </div>
+            <div class="card-item-footer">
+              <span class="lbl-sm">Total Vendido</span>
+              <span class="text-emerald font-bold">C$ {{ formatMonto(p.total) }}</span>
+            </div>
+          </div>
+          <div v-if="topProductos.length === 0" class="empty-state text-center">
+            Sin ventas en este periodo
+          </div>
+        </div>
       </div>
 
       <!-- Últimas Facturas -->
       <div class="panel-card">
         <h4>Últimas Facturas</h4>
-        <table class="tabla-resumen">
+
+        <!-- Tabla Desktop -->
+        <table class="tabla-resumen desktop-only">
           <thead>
             <tr>
               <th>Cliente</th>
@@ -138,6 +160,28 @@
             </tr>
           </tbody>
         </table>
+
+        <!-- Lista Tarjetas Móvil -->
+        <div class="mobile-only list-mobile">
+          <div v-for="f in ultimasFacturas" :key="`uf-${f.id}`" class="card-item-mobile">
+            <div class="card-item-header">
+              <div>
+                <span class="font-medium">{{ f.clientes?.nombre || 'Cliente General' }}</span>
+                <span class="fecha-sub block">{{ new Date(f.created_at).toLocaleDateString() }}</span>
+              </div>
+              <span :class="['badge-pago', f.tipo_pago?.toLowerCase().includes('cr') ? 'badge-credito' : 'badge-efectivo']">
+                {{ f.tipo_pago }}
+              </span>
+            </div>
+            <div class="card-item-footer">
+              <span class="lbl-sm">Monto Total</span>
+              <span class="font-bold text-dark">C$ {{ formatMonto(f.total) }}</span>
+            </div>
+          </div>
+          <div v-if="ultimasFacturas.length === 0" class="empty-state text-center">
+            Sin transacciones recientes
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -216,7 +260,7 @@ const cargarDashboard = async () => {
     const fechaInicio = `${anioActual}-01-01T00:00:00`
     const fechaFin = `${anioActual}-12-31T23:59:59`
 
-    // 1. Cargar Detalle de Ventas filtrado directamente en Supabase (evita corte de 1000 registros)
+    // 1. Cargar Detalle de Ventas
     const { data: detalles, error: errorVentas } = await supabase
       .from('detalle_venta')
       .select('cantidad, precio_unitario, precio_costo, productos(nombre, costo), ventas!inner(created_at, estado, id, total, tipo_pago, clientes(nombre))')
@@ -237,7 +281,6 @@ const cargarDashboard = async () => {
         const mes = fecha.getMonth()
         const vId = d.ventas.id
 
-        // Registrar factura única si entra en el filtro de mes activo
         if (filtroMes.value === 'todos' || Number(filtroMes.value) === mes) {
           if (!facturasSet.has(vId)) {
             facturasSet.set(vId, d.ventas)
@@ -246,17 +289,14 @@ const cargarDashboard = async () => {
 
         const cant = Number(d.cantidad || 0)
         const precioVenta = Number(d.precio_unitario || 0)
-        // Priorizar el costo histórico guardado en la transacción
         const costoUnidad = Number(d.precio_costo ?? d.productos?.costo ?? 0)
 
         const totalVentaItem = precioVenta * cant
         const gananciaBrutaItem = (precioVenta - costoUnidad) * cant
 
-        // Acumular matriz mensual para el gráfico
         datosMensuales.value[mes].ingresos += totalVentaItem
         datosMensuales.value[mes].gananciaBruta += gananciaBrutaItem
 
-        // Filtrar Top Productos por el mes seleccionado
         if (filtroMes.value === 'todos' || Number(filtroMes.value) === mes) {
           const nombreP = d.productos?.nombre || 'Producto General'
           if (!conteoProductos[nombreP]) conteoProductos[nombreP] = { cantidad: 0, total: 0 }
@@ -270,7 +310,7 @@ const cargarDashboard = async () => {
     kpis.value.totalFacturas = listaFacturas.length
     ultimasFacturas.value = listaFacturas.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5)
 
-    // 2. Cargar Egresos/Gastos filtrados por año desde la BD
+    // 2. Cargar Egresos/Gastos
     const { data: egresosData } = await supabase
       .from('egresos')
       .select('monto, fecha')
@@ -341,9 +381,9 @@ onMounted(() => { cargarDashboard() })
 .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
 .subtitulo { color: #64748b; font-size: 0.85rem; margin-top: 0.2rem; }
 
-.filtros-box { display: flex; gap: 0.5rem; align-items: center; }
+.filtros-box { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .select-filtro { padding: 0.45rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; font-size: 0.85rem; outline: none; }
-.btn-refrescar { background: #fff; border: 1px solid #cbd5e1; padding: 0.45rem 0.65rem; border-radius: 6px; cursor: pointer; }
+.btn-refrescar { background: #fff; border: 1px solid #cbd5e1; padding: 0.45rem 0.65rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
 /* BORDES DE TARJETAS */
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
@@ -366,19 +406,21 @@ onMounted(() => { cargarDashboard() })
 .text-emerald { color: #10b981; }
 .text-purple { color: #a855f7; }
 .text-orange { color: #ea580c; }
+.text-dark { color: #0f172a; }
 
 /* SUB KPIS */
-.subkpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.subkpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
 .subkpi-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.85rem 1rem; display: flex; align-items: center; gap: 0.75rem; }
-.subkpi-card .icon-orange { font-size: 1.8rem; color: #ea580c; }
-.subkpi-card .icon-purple { font-size: 1.8rem; color: #9333ea; }
+.subkpi-card .icon-orange { font-size: 1.8rem; color: #ea580c; flex-shrink: 0; }
+.subkpi-card .icon-purple { font-size: 1.8rem; color: #9333ea; flex-shrink: 0; }
 .subkpi-title { margin: 0; font-size: 0.88rem; color: #334155; }
 .subkpi-card small { font-size: 0.75rem; color: #64748b; }
 
 /* PANEL Y TABLAS */
 .panel-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.5rem; }
+.panel-card h4 { margin: 0 0 0.5rem 0; font-size: 0.98rem; color: #0f172a; }
 .chart-container { height: 320px; position: relative; }
-.dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 1.25rem; }
+.dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; }
 
 .tabla-resumen { width: 100%; border-collapse: collapse; font-size: 0.83rem; margin-top: 0.75rem; }
 .tabla-resumen th { background: #f8fafc; padding: 0.5rem; border-bottom: 1px solid #e2e8f0; text-align: left; color: #64748b; }
@@ -386,7 +428,7 @@ onMounted(() => { cargarDashboard() })
 
 .cliente-info { display: flex; flex-direction: column; }
 .fecha-sub { font-size: 0.7rem; color: #94a3b8; }
-.badge-pago { padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 600; font-size: 0.72rem; }
+.badge-pago { padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 600; font-size: 0.72rem; display: inline-block; }
 .badge-efectivo { background: #f0fdf4; color: #16a34a; }
 .badge-credito { background: #fff7ed; color: #ea580c; }
 
@@ -398,4 +440,103 @@ onMounted(() => { cargarDashboard() })
 .text-center { text-align: center; }
 .font-bold { font-weight: 700; }
 .font-medium { font-weight: 500; }
+.block { display: block; }
+
+/* Control Responsivo */
+.desktop-only { display: table; }
+.mobile-only { display: none; }
+
+/* ==========================================================================
+   ADAPTACIONES MÓVILES
+   ========================================================================== */
+@media (max-width: 640px) {
+  .desktop-only { display: none; }
+  .mobile-only { display: flex; }
+
+  .dashboard-container { padding: 0.75rem; }
+  .panel-card { padding: 0.85rem; }
+
+  .filtros-box {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .select-filtro {
+    flex: 1;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  .kpi-card {
+    padding: 0.75rem;
+  }
+
+  .kpi-value {
+    font-size: 1.05rem;
+  }
+
+  .chart-container {
+    height: 240px;
+  }
+
+  .subkpi-grid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Listas móviles tipo tarjeta */
+  .list-mobile {
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 0.75rem;
+  }
+
+  .card-item-mobile {
+    border: 1px solid #f1f5f9;
+    border-radius: 8px;
+    padding: 0.65rem 0.75rem;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .card-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    font-size: 0.82rem;
+  }
+
+  .card-item-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px dashed #e2e8f0;
+    padding-top: 0.35rem;
+    font-size: 0.8rem;
+  }
+
+  .badge-cant {
+    background: #e2e8f0;
+    color: #334155;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+
+  .lbl-sm {
+    font-size: 0.7rem;
+    color: #64748b;
+    text-transform: uppercase;
+  }
+}
 </style>

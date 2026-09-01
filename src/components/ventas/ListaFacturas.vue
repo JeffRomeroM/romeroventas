@@ -31,8 +31,8 @@
         </div>
       </div>
 
-      <!-- Tabla Principal -->
-      <div class="table-container">
+      <!-- Tabla Principal (Desktop) -->
+      <div class="table-container desktop-only">
         <table class="tabla-custom">
           <thead>
             <tr>
@@ -80,6 +80,52 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Tarjetas para Móviles -->
+      <div class="mobile-only facturas-mobile-list">
+        <div 
+          v-for="f in facturasFiltradas" 
+          :key="`mob-${f.id}`" 
+          class="card-factura-mobile"
+          @click="verDetalle(f)"
+        >
+          <div class="card-factura-header">
+            <div>
+              <span class="factura-id">#{{ String(f.id).slice(0, 8) }}</span>
+              <span class="factura-cliente">{{ f.clientes?.nombre || 'Cliente General' }}</span>
+            </div>
+            <span :class="['tag-estado', getClaseEstadoPago(f)]">
+              {{ getTextoEstadoPago(f) }}
+            </span>
+          </div>
+
+          <div class="factura-sub-info">
+            <span class="factura-fecha">{{ formatFecha(f.created_at) }}</span>
+            <span class="badge-pago">{{ f.tipo_pago }}</span>
+          </div>
+
+          <div class="factura-valores">
+            <div class="dato-col">
+              <span class="lbl">Total Factura</span>
+              <span class="val">C$ {{ Number(f.total).toFixed(2) }}</span>
+            </div>
+            <div class="dato-col text-right">
+              <span class="lbl">Pendiente</span>
+              <span class="val font-bold" :class="f.saldo_pendiente > 0 ? 'text-danger' : 'text-success'">
+                C$ {{ Number(f.saldo_pendiente).toFixed(2) }}
+              </span>
+            </div>
+          </div>
+
+          <button class="btn-ver-mobile" @click.stop="verDetalle(f)">
+            <Icon icon="mdi:eye" /> Ver Detalle
+          </button>
+        </div>
+
+        <div v-if="facturasFiltradas.length === 0" class="empty-state text-center">
+          No se encontraron facturas en el rango seleccionado.
+        </div>
+      </div>
     </div>
 
     <!-- MODAL DE DETALLE DE FACTURA -->
@@ -124,29 +170,31 @@
           <hr class="divider" />
 
           <h5>Productos Comprados</h5>
-          <table class="tabla-detalle">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th class="text-center">Cant.</th>
-                <th class="text-right">Precio</th>
-                <th class="text-right">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in itemsDetalle" :key="item.id">
-                <td>{{ item.nombre_producto }}</td>
-                <td class="text-center">{{ item.cantidad }}</td>
-                <td class="text-right">C$ {{ Number(item.precio_unitario).toFixed(2) }}</td>
-                <td class="text-right font-bold">C$ {{ (item.cantidad * item.precio_unitario).toFixed(2) }}</td>
-              </tr>
-              <tr v-if="itemsDetalle.length === 0">
-                <td colspan="4" class="text-center empty-state">
-                  No se encontraron productos en esta factura.
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="table-container">
+            <table class="tabla-detalle">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th class="text-center">Cant.</th>
+                  <th class="text-right">Precio</th>
+                  <th class="text-right">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in itemsDetalle" :key="item.id">
+                  <td>{{ item.nombre_producto }}</td>
+                  <td class="text-center">{{ item.cantidad }}</td>
+                  <td class="text-right">C$ {{ Number(item.precio_unitario).toFixed(2) }}</td>
+                  <td class="text-right font-bold">C$ {{ (item.cantidad * item.precio_unitario).toFixed(2) }}</td>
+                </tr>
+                <tr v-if="itemsDetalle.length === 0">
+                  <td colspan="4" class="text-center empty-state">
+                    No se encontraron productos en esta factura.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
           <!-- RESUMEN FINANCIERO -->
           <div class="resumen-financiero">
@@ -216,7 +264,6 @@ const getClaseEstadoPago = (f) => {
   return 'tag-pendiente'
 }
 
-// Filtrado dinámico por búsqueda de texto y rango de fechas
 const facturasFiltradas = computed(() => {
   return facturas.value.filter(f => {
     const q = filtro.value.toLowerCase().trim()
@@ -246,7 +293,6 @@ const cargarFacturas = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('No hay una sesión activa.')
 
-    // 1. Cargar las ventas
     const { data: ventasData, error: errVentas } = await supabase
       .from('ventas')
       .select('id, total, tipo_pago, estado, estado_pago, created_at, clientes(nombre)')
@@ -255,7 +301,6 @@ const cargarFacturas = async () => {
 
     if (errVentas) throw errVentas
 
-    // 2. Cargar abonos realizados en ventas a crédito
     const { data: pagosData, error: errPagos } = await supabase
       .from('pagos_credito')
       .select('venta_id, monto')
@@ -263,13 +308,11 @@ const cargarFacturas = async () => {
 
     if (errPagos) throw errPagos
 
-    // Map para agrupar total abonado por venta_id
     const abonosPorVenta = (pagosData || []).reduce((acc, pago) => {
       acc[pago.venta_id] = (acc[pago.venta_id] || 0) + Number(pago.monto || 0)
       return acc
     }, {})
 
-    // 3. Unificar datos calculando abonado y saldo pendiente
     facturas.value = (ventasData || []).map(v => {
       const esCredito = v.tipo_pago === 'Credito' || v.tipo_pago === 'Crédito'
       const totalAbonado = esCredito ? (abonosPorVenta[v.id] || 0) : Number(v.total)
@@ -298,7 +341,6 @@ const verDetalle = async (factura) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('No hay una sesión activa.')
 
-    // Cargar los ítems del detalle junto con el nombre del producto
     const { data, error } = await supabase
       .from('detalle_venta')
       .select(`
@@ -355,13 +397,14 @@ onMounted(() => {
 .btn-limpiar { background: #f1f5f9; border: none; padding: 0.4rem 0.75rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #475569; }
 .btn-limpiar:hover { background: #e2e8f0; }
 
+.table-container { overflow-x: auto; width: 100%; }
 .tabla-custom { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .tabla-custom th { background: #f8fafc; padding: 0.65rem; border-bottom: 1px solid #e2e8f0; text-align: left; }
 .tabla-custom td { padding: 0.65rem; border-bottom: 1px solid #f1f5f9; }
 .fila-factura { cursor: pointer; transition: background 0.15s; }
 .fila-factura:hover { background: #f8fafc; }
 
-.badge-pago { background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 4px; font-weight: 600; }
+.badge-pago { background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 4px; font-weight: 600; font-size: 0.75rem; display: inline-block; }
 .tag-estado { padding: 0.25rem 0.6rem; border-radius: 12px; font-weight: 700; font-size: 0.72rem; display: inline-block; }
 .tag-completada { background: #dcfce7; color: #15803d; }
 .tag-pendiente { background: #fef3c7; color: #b45309; }
@@ -374,13 +417,13 @@ onMounted(() => {
 
 /* MODAL STYLES */
 .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
-.modal-content { background: #fff; border-radius: 12px; width: 100%; max-width: 520px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden; }
+.modal-content { background: #fff; border-radius: 12px; width: 100%; max-width: 520px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden; max-height: 90vh; display: flex; flex-direction: column; }
 .modal-header { padding: 1rem 1.25rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
 .modal-header h4 { margin: 0; font-size: 1.1rem; }
 .factura-id { font-size: 0.75rem; color: #64748b; font-family: monospace; }
 .btn-close { background: transparent; border: none; font-size: 1.25rem; color: #64748b; cursor: pointer; }
 
-.modal-body { padding: 1.25rem; }
+.modal-body { padding: 1.25rem; overflow-y: auto; flex: 1; }
 .texto-cargando { color: #64748b; padding: 1rem 0; }
 .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.85rem; }
 .info-grid .label { color: #64748b; margin: 0 0 0.1rem 0; font-size: 0.75rem; }
@@ -404,4 +447,120 @@ onMounted(() => {
 .font-bold { font-weight: 700; }
 .text-success { color: #16a34a; }
 .text-danger { color: #dc2626; }
+
+/* Control Responsivo */
+.desktop-only { display: block; }
+.mobile-only { display: none; }
+
+/* ==========================================================================
+   ADAPTACIONES MÓVILES
+   ========================================================================== */
+@media (max-width: 640px) {
+  .desktop-only { display: none; }
+  .mobile-only { display: flex; }
+
+  .facturas-container { padding: 0.75rem; }
+  .panel-card { padding: 0.85rem; }
+
+  .filtros-wrapper {
+    flex-direction: column;
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .date-group {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .input-date {
+    flex: 1;
+    width: 40%;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .btn-limpiar {
+    align-self: flex-end;
+  }
+
+  /* Formato de Tarjetas */
+  .facturas-mobile-list {
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .card-factura-mobile {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.85rem;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .card-factura-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .factura-cliente {
+    display: block;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #0f172a;
+  }
+
+  .factura-sub-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.78rem;
+    color: #64748b;
+  }
+
+  .factura-valores {
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px dashed #cbd5e1;
+    padding-top: 0.5rem;
+    margin-top: 0.25rem;
+  }
+
+  .dato-col {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .lbl {
+    font-size: 0.7rem;
+    color: #64748b;
+    text-transform: uppercase;
+  }
+
+  .val {
+    font-size: 0.85rem;
+  }
+
+  .btn-ver-mobile {
+    width: 100%;
+    margin-top: 0.25rem;
+    background: #eff6ff;
+    color: #2563eb;
+    border: none;
+    padding: 0.45rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+  }
+}
 </style>

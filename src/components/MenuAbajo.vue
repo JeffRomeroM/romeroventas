@@ -5,30 +5,30 @@
     
 
     <div class="nav-links">
-      <RouterLink to="/dashboard" class="nav-item">
-        <Icon icon="mdi:view-dashboard" class="nav-icon" />
-        <span class="label">Dashboard</span>
+      <RouterLink to="/pos" class="nav-item">
+        <Icon icon="mdi:store-outline" class="nav-icon" />
+        <span class="label">POS</span>
       </RouterLink>
+     
+      <RouterLink to="/ventas" class="nav-item">
+        <Icon icon="mdi:cart-outline" class="nav-icon" />
+        <span class="label">Ventas</span>
+      </RouterLink>
+      
 
       <RouterLink to="/inventario" class="nav-item">
         <Icon icon="mdi:package-variant" class="nav-icon" />
         <span class="label">Inventario</span>
       </RouterLink>
 
-      <RouterLink to="/ventas" class="nav-item">
-        <Icon icon="mdi:cart-check" class="nav-icon" />
-        <span class="label">Ventas</span>
+      <RouterLink to="/clientes" class="nav-item">
+        <Icon icon="mdi:account-group" class="nav-icon" />
+        <span class="label">Clientes</span>
       </RouterLink>
 
-      <RouterLink to="/egresos" class="nav-item">
-        <Icon icon="mdi:cash-minus" class="nav-icon" />
-        <span class="label">Egresos</span>
-      </RouterLink>
+    
 
-      <RouterLink to="/negocios" class="nav-item">
-        <Icon icon="mdi:storefront" class="nav-icon" />
-        <span class="label">Negocios</span>
-      </RouterLink>
+  
 
       
 

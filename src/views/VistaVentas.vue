@@ -1,8 +1,6 @@
 <template>
   <div class="modulo-global">
     <div class="tabs-navigation">
-    
-
       <button 
         :class="['tab-btn', { active: pestanaActiva === 'creditos' }]" 
         @click="pestanaActiva = 'creditos'"
@@ -18,6 +16,7 @@
         <Icon icon="mdi:history" />
         <span>Reporte Precios Históricos</span>
       </button>
+
       <button 
         :class="['tab-btn', { active: pestanaActiva === 'facturas' }]" 
         @click="pestanaActiva = 'facturas'"
@@ -25,7 +24,6 @@
         <Icon icon="mdi:file-document" />
         <span>Facturas</span>
       </button>
-
 
       <button 
         :class="['tab-btn', { active: pestanaActiva === 'anulaciones' }]" 
@@ -101,6 +99,13 @@ const pestanaActiva = ref('creditos')
   gap: 0.5rem;
   border-bottom: 2px solid #e2e8f0;
   margin-bottom: 1.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+}
+
+.tabs-navigation::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
 }
 
 .tab-btn {
@@ -117,6 +122,8 @@ const pestanaActiva = ref('creditos')
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tab-btn:hover:not(.active) {
@@ -659,5 +666,55 @@ button:disabled {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   ADAPTACIONES MÓVILES
+   ========================================================================== */
+@media (max-width: 640px) {
+  .modulo-global,
+  .ventas-container,
+  .facturacion-container {
+    padding: 0.75rem;
+  }
+
+  .tabs-navigation {
+    padding-bottom: 0.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .tab-btn {
+    padding: 0.6rem 0.85rem;
+    font-size: 0.82rem;
+  }
+
+  .vista-header,
+  .header-seccion,
+  .reporte-header,
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .config-factura {
+    flex-direction: column;
+  }
+
+  .buscador-box {
+    width: 100%;
+  }
+
+  .saldos-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .seccion,
+  .card-reporte,
+  .tabla-card,
+  .panel-productos,
+  .panel-factura {
+    padding: 0.85rem;
+  }
 }
 </style>
