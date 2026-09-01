@@ -43,7 +43,6 @@ const routes = [
   {
     path: '/pos',
     name: 'POS',
-    // OJO: Asegúrate de que la carpeta sea /Ventas/ o /ventas/ exactamente igual en Git
     component: () => import('../components/ventas/FacturacionVentas.vue'),
     meta: { requiresAuth: true }
   },
@@ -88,7 +87,7 @@ router.beforeEach(async (to, from, next) => {
   } 
   // Si ya está autenticado e intenta ir a Login o Register, redirige al Dashboard
   else if ((to.path === '/' || to.path === '/register') && isAuthenticated) {
-    next({ name: 'pos' })
+    next({ name: 'POS' })
   } 
   else {
     next()

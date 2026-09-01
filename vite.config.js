@@ -5,12 +5,14 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   plugins: [
     vue(),
+
     VitePWA({
-      workbox: {
-        navigateFallback: '/index.html',
-        navigateFallbackAllowlist: [/^\//]
-      },
       registerType: 'autoUpdate',
+
+      workbox: {
+        navigateFallback: '/index.html'
+      },
+
       manifest: {
         name: 'Romero Ventas',
         short_name: 'Romero',
@@ -18,6 +20,7 @@ export default defineConfig({
         display: 'standalone',
         background_color: '#ffffff',
         theme_color: '#2563eb',
+
         icons: [
           {
             src: 'logo.png',
